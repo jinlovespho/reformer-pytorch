@@ -261,6 +261,7 @@ class LSHAttention(nn.Module):
         offsets = torch.reshape(offsets * n_buckets, (1, -1, 1))
         buckets = torch.reshape(buckets + offsets, (batch_size, -1,))
         return buckets
+    
 
     def forward(self, qk, v, query_len = None, input_mask = None, input_attn_mask = None, pos_emb = None, **kwargs):
         batch_size, seqlen, dim, device = *qk.shape, qk.device
@@ -268,7 +269,7 @@ class LSHAttention(nn.Module):
         query_len = default(query_len, seqlen)
         is_reverse = kwargs.pop('_reverse', False)
         depth = kwargs.pop('_depth', None)
-
+        
         assert seqlen % (self.bucket_size * 2) == 0, f'Sequence length ({seqlen}) needs to be divisible by target bucket size  x 2 - {self.bucket_size * 2}'
 
         n_buckets = seqlen // self.bucket_size
@@ -491,6 +492,10 @@ class LSHSelfAttention(nn.Module):
         assert dim_head or (dim % heads) == 0, 'dimensions must be divisible by number of heads'
         assert n_local_attn_heads < heads, 'local attention heads must be less than number of heads'
 
+
+        # breakpoint()
+        
+        
         dim_head = default(dim_head, dim // heads)
         dim_heads = dim_head * heads
 
@@ -675,6 +680,8 @@ class Reformer(nn.Module):
         self.num_mem_kv = num_mem_kv
 
         self.full_attn_thres = full_attn_thres
+        
+        # breakpoint()
 
         get_attn = lambda: LSHSelfAttention(dim, heads, bucket_size, n_hashes, causal = causal, dim_head = dim_head, dropout = lsh_dropout, post_attn_dropout = post_attn_dropout, attn_chunks = attn_chunks, allow_duplicate_attention = lsh_allow_duplicate_attention, attend_across_buckets = lsh_attend_across_buckets, random_rotations_per_head = random_rotations_per_head, num_mem_kv = num_mem_kv, use_full_attn = use_full_attn, full_attn_thres = full_attn_thres, one_value_head = one_value_head, n_local_attn_heads = n_local_attn_heads)
         get_ff = lambda: Chunk(ff_chunks, FeedForward(dim, dropout = ff_dropout, activation = ff_activation, mult = ff_mult, glu = ff_glu), along_dim = -2)
@@ -716,6 +723,8 @@ class Reformer(nn.Module):
 class ReformerLM(nn.Module):
     def __init__(self, num_tokens, dim, depth, max_seq_len, heads = 8, dim_head = 64, bucket_size = 64, n_hashes = 4, ff_chunks = 100, attn_chunks = 1, causal = False, weight_tie = False, lsh_dropout = 0., ff_dropout = 0., ff_mult = 4, ff_activation = None, ff_glu = False, post_attn_dropout = 0., layer_dropout = 0., random_rotations_per_head = False, use_scale_norm = False, use_rezero = False, use_full_attn = False, full_attn_thres = 0, reverse_thres = 0, num_mem_kv = 0, one_value_head = False, emb_dim = None, return_embeddings = False, weight_tie_embedding = False, fixed_position_emb = False, absolute_position_emb = False, axial_position_emb = False, axial_position_shape = None, n_local_attn_heads = 0, pkm_layers = tuple(), pkm_num_keys = 128):
         super().__init__()
+        
+        # breakpoint()
         emb_dim = default(emb_dim, dim)
         self.max_seq_len = max_seq_len
 
@@ -734,7 +743,7 @@ class ReformerLM(nn.Module):
         elif fixed_position_emb:
             self.pos_emb = FixedPositionalEmbedding(emb_dim)
         else:
-            self.layer_pos_emb = FixedPositionalEmbedding(dim_head)
+            self.layer_pos_emb = FixedPositionalEmbedding(dim_head)     # 위에 다 실행 X, 여기 실행 O
 
         self.reformer = Reformer(dim, depth, heads = heads, dim_head = dim_head, bucket_size = bucket_size, n_hashes = n_hashes, ff_chunks = ff_chunks, attn_chunks = attn_chunks, causal = causal, weight_tie = weight_tie, lsh_dropout = lsh_dropout, ff_mult = ff_mult, ff_activation = ff_activation, ff_glu = ff_glu, ff_dropout = ff_dropout, post_attn_dropout = 0., layer_dropout = layer_dropout, random_rotations_per_head = random_rotations_per_head, use_scale_norm = use_scale_norm, use_rezero = use_rezero, use_full_attn = use_full_attn, full_attn_thres = full_attn_thres, reverse_thres = reverse_thres, num_mem_kv = num_mem_kv, one_value_head = one_value_head, n_local_attn_heads = n_local_attn_heads, pkm_layers = pkm_layers, pkm_num_keys = pkm_num_keys)
         self.norm = nn.LayerNorm(dim)
@@ -749,6 +758,7 @@ class ReformerLM(nn.Module):
         )
 
     def forward(self, x, **kwargs):
+        # breakpoint()
         x = self.token_emb(x)
         x = x + self.pos_emb(x)
 
